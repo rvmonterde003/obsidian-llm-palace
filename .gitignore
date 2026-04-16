@@ -1,0 +1,29 @@
+# Obsidian workspace (personal state)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache/
+
+# MemPalace local data (generated on init)
+entities.json
+mempalace.yaml
+.mempalace/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Scan report (local artifact)
+scan-report.md
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Environment
+.env
+.env.local
+
+# Claude Code local config
+.claude/

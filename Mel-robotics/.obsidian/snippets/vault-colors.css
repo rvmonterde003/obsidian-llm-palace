@@ -1,0 +1,37 @@
+/* Color-code wiki folders in the file explorer */
+
+/* Concepts — blue */
+.nav-file-title[data-path^="wiki/concepts"] {
+  color: #6BA3F7;
+}
+
+/* Entities — purple */
+.nav-file-title[data-path^="wiki/entities"] {
+  color: #B388FF;
+}
+
+/* Sources — green */
+.nav-file-title[data-path^="wiki/sources"] {
+  color: #69F0AE;
+}
+
+/* Comparisons — orange */
+.nav-file-title[data-path^="wiki/comparisons"] {
+  color: #FFAB40;
+}
+
+/* Raw sources — dimmed */
+.nav-file-title[data-path^="raw/"] {
+  color: #888;
+}
+
+/* Templates — dimmed italic */
+.nav-file-title[data-path^="_templates/"] {
+  color: #777;
+  font-style: italic;
+}
+
+/* Outputs — yellow */
+.nav-file-title[data-path^="outputs/"] {
+  color: #FFD740;
+}
