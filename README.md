@@ -64,7 +64,7 @@ A combined knowledge management pipeline that merges [Andrej Karpathy's LLM Wiki
 
 ```
 obsidian-llm-palace/
-├── Mel-robotics/                    # Obsidian vault root
+├── llm-palace/                    # Obsidian vault root
 │   ├── CLAUDE.md                    # Schema — tells Claude how to run the wiki
 │   ├── .gitignore
 │   │
@@ -125,7 +125,7 @@ cd obsidian-llm-palace
 1. Open Obsidian
 2. Click **Manage Vaults** (vault icon, bottom left)
 3. Click **Open folder as vault**
-4. Select the `Mel-robotics/` directory inside the cloned repo
+4. Select the `llm-palace/` directory inside the cloned repo
 
 ### Step 3: Enable the CSS snippet
 
@@ -145,7 +145,7 @@ pip install mempalace
 
 ```bash
 # Navigate to the vault directory
-cd Mel-robotics/
+cd llm-palace/
 
 # Initialize — detects entities and sets up the palace structure
 mempalace init .
