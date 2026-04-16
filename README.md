@@ -64,7 +64,7 @@ A combined knowledge management pipeline that merges [Andrej Karpathy's LLM Wiki
 
 ```
 obsidian-llm-palace/
-├── llm-palace/                    # Obsidian vault root
+├── obsidian-llm-palace/            # Obsidian vault root
 │   ├── CLAUDE.md                    # Schema — tells Claude how to run the wiki
 │   ├── .gitignore
 │   │
@@ -125,7 +125,7 @@ cd obsidian-llm-palace
 1. Open Obsidian
 2. Click **Manage Vaults** (vault icon, bottom left)
 3. Click **Open folder as vault**
-4. Select the `llm-palace/` directory inside the cloned repo
+4. Select the `obsidian-llm-palace/` directory inside the cloned repo
 
 ### Step 3: Enable the CSS snippet
 
@@ -145,7 +145,7 @@ pip install mempalace
 
 ```bash
 # Navigate to the vault directory
-cd llm-palace/
+cd obsidian-llm-palace/
 
 # Initialize — detects entities and sets up the palace structure
 mempalace init .
@@ -455,7 +455,9 @@ MemPalace provides the raw recall that the wiki pattern alone cannot: 96.6% R@5 
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
+
+Third-party licenses (MemPalace) — see [THIRD-PARTY-LICENSES](THIRD-PARTY-LICENSES).
 
 ---
 
