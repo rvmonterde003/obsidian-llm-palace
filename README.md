@@ -293,6 +293,72 @@ Stores and retrieves conversations, but:
 
 ---
 
+## Projected Performance
+
+Estimates based on [MemPalace's published benchmarks](https://github.com/MemPalace/mempalace/tree/main/benchmarks) (96.6% R@5 on LongMemEval, 600-900 token wake-up cost) and the LLM Wiki pattern's architectural properties. These are projections, not guarantees — actual results depend on usage patterns and wiki maturity.
+
+### Token Efficiency Per Session
+
+The combined pipeline routes queries to the cheapest layer that can answer them. Knowledge questions hit the wiki (pre-compiled pages). Conversation recall hits MemPalace (semantic search). Neither re-derives from raw sources.
+
+```
+                           Without pipeline       With pipeline
+───────────────────────────────────────────────────────────────────
+Session startup            0 tokens (cold)        600-900 tokens (hot.md + wake-up)
+Knowledge query            2,000-5,000 tokens     1,500-3,000 tokens (wiki pages)
+Conversation recall        Impossible (no memory) ~500-1,000 tokens (MemPalace search)
+Source re-reading           Full doc every time    Read once → wiki page persists
+───────────────────────────────────────────────────────────────────
+Est. token savings/query:  ~30-50%
+Est. savings/session (10 queries): ~40-60%
+```
+
+The largest savings come from **avoiding re-reading raw sources**. A 20-page paper costs ~15,000 tokens every time RAG retrieves it. A pre-compiled wiki summary costs ~500 tokens and is written once.
+
+### Cost Projection (Annual, Assuming Daily Use)
+
+```
+                           Standard RAG    MemPalace alone    Combined pipeline
+────────────────────────────────────────────────────────────────────────────────
+Wake-up / session          $0              ~$0.70/year        ~$0.70/year
+Search / retrieval         $200-500/year   ~$10/year          ~$10/year
+LLM calls for queries      $300-800/year   $300-800/year      $150-400/year
+Vector DB hosting          $50-200/year    $0 (local)         $0 (local)
+────────────────────────────────────────────────────────────────────────────────
+Estimated total            $550-1,500/yr   $310-810/yr        $160-410/yr
+```
+
+**Estimated savings over standard RAG: ~60-75%.** The wiki layer eliminates repeated LLM re-derivation for compiled knowledge. MemPalace eliminates cloud vector DB costs by running entirely locally (ChromaDB + all-MiniLM-L6-v2 embeddings, ~79MB on disk, zero API calls).
+
+### Session Continuity
+
+This is where neither system alone comes close to the combined pipeline.
+
+```
+                           Wiki alone       MemPalace alone    Combined pipeline
+─────────────────────────────────────────────────────────────────────────────────
+Context carried to         0%               ~96.6% of          ~96.6% conversations
+ next session                               conversations      + 100% compiled knowledge
+                                                               + hot.md recent context
+
+Time to productive start   5-10 min         1-2 min            <30 seconds
+ (re-establishing context) (re-explain       (wake-up call)     (hot.md + wake-up)
+                           everything)
+─────────────────────────────────────────────────────────────────────────────────
+```
+
+Without memory, every session starts cold — you re-explain your project, your decisions, your terminology. With the combined pipeline, `hot.md` gives the last session's context in ~600 tokens, the wiki gives all compiled knowledge, and MemPalace gives verbatim recall of any past conversation.
+
+### Caveats
+
+- MemPalace's 96.6% R@5 is measured on [LongMemEval](https://github.com/MemPalace/mempalace/tree/main/benchmarks) with 500 questions in raw verbatim mode. AAAK compressed mode scores 84.2%.
+- The +34% palace structure boost [was acknowledged by MemPalace's authors](https://github.com/MemPalace/mempalace#honest-corrections-april-2026) as comparing filtered vs unfiltered search — a standard feature, not a novel improvement.
+- Wiki retrieval accuracy (~95-100%) assumes the index is maintained and pages are current. A stale wiki degrades this.
+- Token and cost savings compound over time — a new vault with few sources will show smaller gains than a mature one with 50-200 ingested sources.
+- All MemPalace operations run locally with zero API calls. The cost projections for the LLM layer assume Claude Code usage.
+
+---
+
 ## Recommended Obsidian Plugins
 
 These are optional but improve the experience:
