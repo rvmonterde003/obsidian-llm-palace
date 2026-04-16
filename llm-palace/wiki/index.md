@@ -36,10 +36,16 @@ _Side-by-side analyses._
 
 > No comparisons yet.
 
+## Meta
+
+_Protocols, dashboards, health reports._
+
+- [[Brain Dump Protocol]] — Routing rules for voice dictation and free-form text paste-ins
+
 ---
 
 ## Stats
 
-- **Total pages**: 3
+- **Total pages**: 4
 - **Last ingested**: 2026-04-16 (initial scaffold)
 - **Last lint**: —
