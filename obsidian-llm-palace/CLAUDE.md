@@ -122,3 +122,7 @@ structured knowledge; MemPalace handles verbatim conversation recall.
 - **No hallucination**: If a fact isn't in the sources, don't add it to the wiki. Say "not covered in current sources" instead.
 - **Verbatim quotes**: When a source makes a key claim, include the exact quote in the source summary.
 - **Atomic pages**: One concept per page. If a page covers two distinct ideas, split it.
+
+## MemPalace
+
+Wing: obsidian-llm-palace
