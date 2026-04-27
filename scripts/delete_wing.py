@@ -52,27 +52,51 @@ def delete_wing(wing: str, confirmed: bool) -> int:
 
     print(f"Deleting {len(drawer_ids)} drawer(s) and {len(tunnel_ids)} tunnel(s) from {wing!r}...")
 
+    deleted_drawers = 0
     for drawer_id in drawer_ids:
         try:
             result = tool_delete_drawer(drawer_id=drawer_id)
         except Exception as exc:
             print(f"  FAIL drawer {drawer_id}: exception: {exc}", file=sys.stderr)
+            print(
+                f"  Partial state: {deleted_drawers} of {len(drawer_ids)} drawer(s) "
+                f"deleted before failure. Wing {wing!r} is in an inconsistent state.",
+                file=sys.stderr,
+            )
             return 1
         if not isinstance(result, dict) or not result.get("success", False):
             err = result.get("error", "unknown") if isinstance(result, dict) else "unknown"
             print(f"  FAIL drawer {drawer_id}: {err}", file=sys.stderr)
+            print(
+                f"  Partial state: {deleted_drawers} of {len(drawer_ids)} drawer(s) "
+                f"deleted before failure. Wing {wing!r} is in an inconsistent state.",
+                file=sys.stderr,
+            )
             return 1
+        deleted_drawers += 1
 
+    deleted_tunnels = 0
     for tunnel_id in tunnel_ids:
         try:
             result = tool_delete_tunnel(tunnel_id=tunnel_id)
         except Exception as exc:
             print(f"  FAIL tunnel {tunnel_id}: exception: {exc}", file=sys.stderr)
+            print(
+                f"  Partial state: all {deleted_drawers} drawer(s) deleted, "
+                f"{deleted_tunnels} of {len(tunnel_ids)} tunnel(s) deleted before failure.",
+                file=sys.stderr,
+            )
             return 1
         if not isinstance(result, dict) or not result.get("success", False):
             err = result.get("error", "unknown") if isinstance(result, dict) else "unknown"
             print(f"  FAIL tunnel {tunnel_id}: {err}", file=sys.stderr)
+            print(
+                f"  Partial state: all {deleted_drawers} drawer(s) deleted, "
+                f"{deleted_tunnels} of {len(tunnel_ids)} tunnel(s) deleted before failure.",
+                file=sys.stderr,
+            )
             return 1
+        deleted_tunnels += 1
 
     print(f"Wing {wing!r} deleted. Verify with: python -m mempalace status")
     return 0

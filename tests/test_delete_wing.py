@@ -98,3 +98,41 @@ def test_delete_wing_returns_nonzero_when_drawer_delete_raises(mocker):
     )
     rc = delete_wing("doomed", confirmed=True)
     assert rc != 0
+
+
+def test_delete_wing_reports_drawer_partial_count_on_failure(mocker, capsys):
+    """When the second drawer fails, message must say '1 of 3 drawer(s) deleted before failure'."""
+    mocker.patch("scripts.delete_wing.list_all_drawer_ids_for_wing", return_value=["d1", "d2", "d3"])
+    mocker.patch("scripts.delete_wing.list_tunnel_ids_for_wing", return_value=[])
+    mocker.patch(
+        "scripts.delete_wing.tool_delete_drawer",
+        side_effect=[
+            {"success": True},
+            {"success": False, "error": "boom"},
+            {"success": True},  # would be third call but we should bail before
+        ],
+    )
+    rc = delete_wing("doomed", confirmed=True)
+    assert rc != 0
+    err = capsys.readouterr().err
+    assert "1 of 3" in err
+    assert "doomed" in err
+
+
+def test_delete_wing_reports_tunnel_partial_count_on_failure(mocker, capsys):
+    """When tunnel deletion fails, message must include the drawer-completion summary."""
+    mocker.patch("scripts.delete_wing.list_all_drawer_ids_for_wing", return_value=["d1"])
+    mocker.patch("scripts.delete_wing.list_tunnel_ids_for_wing", return_value=["t1", "t2"])
+    mocker.patch("scripts.delete_wing.tool_delete_drawer", return_value={"success": True})
+    mocker.patch(
+        "scripts.delete_wing.tool_delete_tunnel",
+        side_effect=[
+            {"success": True},
+            {"success": False, "error": "boom"},
+        ],
+    )
+    rc = delete_wing("doomed", confirmed=True)
+    assert rc != 0
+    err = capsys.readouterr().err
+    assert "1 drawer" in err
+    assert "1 of 2" in err
