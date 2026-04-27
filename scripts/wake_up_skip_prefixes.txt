@@ -1,0 +1,3 @@
+# One prefix per line. Wings whose names start with any of these will not
+# trigger an auto wake-up at session start. Used by archive_wing.py.
+_archive_
