@@ -31,3 +31,29 @@ __pycache__/
 
 # Generated artifacts
 backfill-plan.yaml
+
+# Personal vault content — NEVER committed; the repo is the framework, your vault is yours.
+# Directory structure is preserved via .gitkeep markers below.
+obsidian-llm-palace/wiki/concepts/*
+obsidian-llm-palace/wiki/entities/*
+obsidian-llm-palace/wiki/sources/*
+obsidian-llm-palace/wiki/comparisons/*
+obsidian-llm-palace/wiki/meta/*
+obsidian-llm-palace/wiki/index.md
+obsidian-llm-palace/wiki/log.md
+obsidian-llm-palace/wiki/hot.md
+obsidian-llm-palace/wiki/overview.md
+obsidian-llm-palace/raw/**
+
+# Preserve empty directory structure
+!obsidian-llm-palace/wiki/concepts/.gitkeep
+!obsidian-llm-palace/wiki/entities/.gitkeep
+!obsidian-llm-palace/wiki/sources/.gitkeep
+!obsidian-llm-palace/wiki/comparisons/.gitkeep
+!obsidian-llm-palace/wiki/meta/.gitkeep
+!obsidian-llm-palace/raw/articles/.gitkeep
+!obsidian-llm-palace/raw/papers/.gitkeep
+!obsidian-llm-palace/raw/repos/.gitkeep
+!obsidian-llm-palace/raw/data/.gitkeep
+!obsidian-llm-palace/raw/images/.gitkeep
+!obsidian-llm-palace/raw/assets/.gitkeep
