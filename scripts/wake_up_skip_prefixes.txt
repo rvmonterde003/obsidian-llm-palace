@@ -1,3 +1,3 @@
 # One prefix per line. Wings whose names start with any of these will not
-# trigger an auto wake-up at session start. Used by archive_wing.py.
+# trigger an auto wake-up at session start. Consumed by session_start_hook.py.
 _archive_

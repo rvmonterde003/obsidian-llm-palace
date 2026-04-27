@@ -44,6 +44,18 @@ def test_invoke_wake_up_returns_empty_on_subprocess_failure(mocker):
     assert invoke_wake_up("dead-wing") == ""
 
 
+def test_invoke_wake_up_returns_empty_on_timeout(mocker):
+    fake_run = mocker.patch("scripts.session_start_hook.subprocess.run")
+    fake_run.side_effect = subprocess.TimeoutExpired(cmd=["mempalace"], timeout=10)
+    assert invoke_wake_up("any-wing") == ""
+
+
+def test_invoke_wake_up_returns_empty_when_mempalace_missing(mocker):
+    fake_run = mocker.patch("scripts.session_start_hook.subprocess.run")
+    fake_run.side_effect = FileNotFoundError("mempalace not found")
+    assert invoke_wake_up("any-wing") == ""
+
+
 def test_main_skips_when_wing_matches_prefix(mocker, tmp_path, capsys, monkeypatch):
     project = tmp_path / "_archive_dead"
     project.mkdir()
@@ -65,8 +77,9 @@ def test_main_invokes_wake_up_for_live_wing(mocker, tmp_path, capsys, monkeypatc
     monkeypatch.chdir(project)
     skip_file = tmp_path / "skips.txt"
     skip_file.write_text("_archive_\n")
-    mocker.patch("scripts.session_start_hook.invoke_wake_up", return_value="WAKE_UP_PAYLOAD")
+    mock_invoke = mocker.patch("scripts.session_start_hook.invoke_wake_up", return_value="WAKE_UP_PAYLOAD")
     rc = main(skip_file=skip_file)
     assert rc == 0
+    mock_invoke.assert_called_once_with("live-wing")
     captured = capsys.readouterr()
     assert "WAKE_UP_PAYLOAD" in captured.out

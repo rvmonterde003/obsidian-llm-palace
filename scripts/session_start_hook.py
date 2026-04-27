@@ -29,18 +29,21 @@ def load_skip_prefixes(path: Path) -> List[str]:
 
 
 def should_skip(wing: str, prefixes: List[str]) -> bool:
+    """Return True if wing starts with any of the given skip prefixes."""
     return any(wing.startswith(p) for p in prefixes)
 
 
 def invoke_wake_up(wing: str) -> str:
-    """Call `mempalace wake-up --wing <wing>` and return its stdout. Empty on failure."""
+    """Call `mempalace wake-up --wing <wing>` and return its stdout. Empty on any failure (fail-open)."""
     cmd = [sys.executable, "-m", "mempalace", "wake-up", "--wing", wing, "--format", "json"]
-    result = subprocess.run(
-        cmd, env=mempalace_env(),
-        capture_output=True, text=True, encoding="utf-8", timeout=10
-    )
+    try:
+        result = subprocess.run(
+            cmd, env=mempalace_env(),
+            capture_output=True, text=True, encoding="utf-8", timeout=10,
+        )
+    except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+        return ""
     if result.returncode != 0:
-        # Fail open: no wake-up rather than a broken session start
         return ""
     return result.stdout
 
