@@ -31,6 +31,12 @@ def test_run_one_row_calls_subprocess_with_utf8_env(mocker):
     args, kwargs = fake_run.call_args
     env = kwargs["env"]
     assert env["PYTHONIOENCODING"] == "utf-8"
+    cmd_passed = args[0]
+    assert "mine" in cmd_passed
+    assert "--wing" in cmd_passed
+    assert "x" in cmd_passed
+    assert "--mode" in cmd_passed
+    assert "convos" in cmd_passed
 
 
 def test_run_one_row_returns_false_on_subprocess_failure(mocker):
@@ -57,4 +63,23 @@ def test_run_plan_returns_nonzero_when_any_row_fails(mocker, tmp_path):
     plan = tmp_path / "plan.yaml"
     plan.write_text("- encoded: C--a\n  wing: a\n  transcripts: 1\n  include: true\n")
     mocker.patch("scripts.backfill_run.run_one_row", return_value=False)
+    assert run_plan(plan, projects_dir=tmp_path) != 0
+
+
+def test_run_plan_continues_past_failure_and_aggregates(mocker, tmp_path):
+    plan = tmp_path / "plan.yaml"
+    plan.write_text(
+        "- encoded: C--a\n  wing: a\n  transcripts: 1\n  include: true\n"
+        "- encoded: C--b\n  wing: b\n  transcripts: 1\n  include: true\n"
+    )
+    # First row fails, second succeeds
+    spy = mocker.patch("scripts.backfill_run.run_one_row", side_effect=[False, True])
+    rc = run_plan(plan, projects_dir=tmp_path)
+    assert rc != 0  # any failure → nonzero
+    assert spy.call_count == 2  # second row was still attempted
+
+
+def test_run_plan_returns_nonzero_for_empty_plan(tmp_path):
+    plan = tmp_path / "plan.yaml"
+    plan.write_text("")
     assert run_plan(plan, projects_dir=tmp_path) != 0

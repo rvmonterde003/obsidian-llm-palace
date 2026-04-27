@@ -22,7 +22,7 @@ def run_one_row(row: Dict, projects_dir: Path) -> bool:
     encoded_dir = projects_dir / row["encoded"]
     cmd = build_mine_command(encoded_dir, row["wing"])
     print(f"[mine] wing={row['wing']!r} transcripts={row['transcripts']} dir={encoded_dir}")
-    result = subprocess.run(cmd, env=mempalace_env(), capture_output=True, text=True)
+    result = subprocess.run(cmd, env=mempalace_env(), capture_output=True, text=True, encoding="utf-8")
     if result.returncode != 0:
         print(f"  FAIL (rc={result.returncode}): {result.stderr.strip()}", file=sys.stderr)
         return False
@@ -32,6 +32,12 @@ def run_one_row(row: Dict, projects_dir: Path) -> bool:
 
 def run_plan(plan_path: Path, projects_dir: Path) -> int:
     rows = yaml.safe_load(plan_path.read_text())
+    if not rows:
+        print("ERROR: plan is empty or could not be parsed.", file=sys.stderr)
+        return 1
+    if not isinstance(rows, list):
+        print(f"ERROR: expected a list of rows, got {type(rows).__name__}.", file=sys.stderr)
+        return 1
     failures = 0
     for row in rows:
         if not row.get("include", False):
