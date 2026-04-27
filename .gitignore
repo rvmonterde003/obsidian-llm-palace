@@ -26,8 +26,9 @@ __pycache__/
 .env
 .env.local
 
-# Claude Code local config
-.claude/
+# Claude Code local config (allow project-level slash commands so cloners get /setup, /recall, etc.)
+.claude/*
+!.claude/commands/
 
 # Generated artifacts
 backfill-plan.yaml

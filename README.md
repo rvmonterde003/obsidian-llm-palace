@@ -110,8 +110,28 @@ obsidian-llm-palace/
 
 - [Obsidian](https://obsidian.md) (free)
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (Anthropic CLI)
-- Python 3.9+
+- Python 3.10+
 - Git
+
+### Quick start — let Claude set it up for you
+
+After cloning, the fastest path is to let Claude Code drive the install:
+
+```bash
+git clone https://github.com/rvmonterde003/obsidian-llm-palace.git
+cd obsidian-llm-palace
+claude            # opens Claude Code in this repo
+```
+
+Then in Claude Code, type:
+
+```
+/setup
+```
+
+This invokes the project-level `setup.md` slash command. Claude reads it as a playbook and walks you through every step interactively — installing dependencies, initializing the palace, optional backfill of `~/.claude/projects/` history, registering the MCP server, and merging hooks into your `~/.claude/settings.json` (with backup). Skip to step "Open in Obsidian" below once it's done.
+
+If you'd rather do it manually, the rest of this section walks through the same steps. Pick whichever you prefer.
 
 ### Step 1: Clone the repository
 
