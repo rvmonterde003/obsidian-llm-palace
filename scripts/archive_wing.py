@@ -16,11 +16,18 @@ ARCHIVE_PREFIX = "_archive_"
 
 
 def list_all_drawer_ids_for_wing(wing: str) -> List[str]:
-    """Return all drawer IDs filed under the given wing, paginating as needed."""
+    """Return all drawer IDs filed under the given wing, paginating as needed.
+
+    Returns the partial list collected so far if a call raises or returns an error.
+    """
     ids: List[str] = []
     offset = 0
     while True:
-        result = tool_list_drawers(wing=wing, limit=PAGE_SIZE, offset=offset)
+        try:
+            result = tool_list_drawers(wing=wing, limit=PAGE_SIZE, offset=offset)
+        except Exception as exc:
+            print(f"  WARN list_drawers raised: {exc}", file=sys.stderr)
+            return ids
         if not isinstance(result, dict) or "error" in result:
             return ids
         page = result.get("drawers", [])
@@ -51,7 +58,11 @@ def archive_wing(wing: str) -> int:
 
     print(f"Archiving {len(ids)} drawer(s): {wing} -> {new_wing}")
     for drawer_id in ids:
-        result = tool_update_drawer(drawer_id=drawer_id, wing=new_wing)
+        try:
+            result = tool_update_drawer(drawer_id=drawer_id, wing=new_wing)
+        except Exception as exc:
+            print(f"  FAIL drawer {drawer_id}: exception: {exc}", file=sys.stderr)
+            return 1
         if not isinstance(result, dict) or not result.get("success", False):
             err = result.get("error", "unknown") if isinstance(result, dict) else "unknown"
             print(f"  FAIL drawer {drawer_id}: {err}", file=sys.stderr)

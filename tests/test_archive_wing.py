@@ -82,3 +82,23 @@ def test_archive_wing_refuses_to_archive_already_archived(mocker, capsys):
     fake_update.assert_not_called()
     err = capsys.readouterr().err.lower() + capsys.readouterr().out.lower()
     assert "already" in err or "archived" in err
+
+
+def test_list_all_drawer_ids_returns_partial_on_exception(mocker):
+    """If tool_list_drawers raises mid-pagination, return what we have so far."""
+    fake_list = mocker.patch("scripts.archive_wing.tool_list_drawers")
+    fake_list.side_effect = [
+        {"drawers": [{"id": f"d{i}"} for i in range(100)]},
+        RuntimeError("connection lost"),
+    ]
+    ids = list_all_drawer_ids_for_wing("foo")
+    assert len(ids) == 100
+    assert ids[0] == "d0"
+
+
+def test_archive_wing_returns_nonzero_when_update_raises(mocker):
+    mocker.patch("scripts.archive_wing.list_all_drawer_ids_for_wing", return_value=["d1"])
+    fake_update = mocker.patch("scripts.archive_wing.tool_update_drawer")
+    fake_update.side_effect = RuntimeError("db locked")
+    rc = archive_wing("foo")
+    assert rc != 0
