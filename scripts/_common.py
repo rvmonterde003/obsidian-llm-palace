@@ -1,6 +1,7 @@
 """Shared constants and helpers for MemPalace tooling scripts."""
 import os
 import re
+import unicodedata
 from pathlib import Path
 
 PALACE_PATH = Path.home() / ".mempalace" / "palace"
@@ -13,10 +14,17 @@ def derive_wing_from_cwd(cwd: str) -> str:
 
 
 def sanitize_wing_name(name: str) -> str:
-    """Coerce a string into a valid wing name: lowercase, hyphens for unsafe chars."""
+    """Coerce a string into a valid wing name: lowercase, ASCII, hyphens for unsafe chars.
+
+    Raises ValueError if the input collapses to an empty string (e.g., "", "---", "βeta"
+    after Unicode strip), which would silently route drawers to a wing with no name.
+    """
+    name = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode()
     name = name.lower().strip()
     name = re.sub(r"[^a-z0-9_-]+", "-", name)
     name = re.sub(r"-+", "-", name).strip("-")
+    if not name:
+        raise ValueError(f"sanitize_wing_name produced an empty wing name from input")
     return name
 
 

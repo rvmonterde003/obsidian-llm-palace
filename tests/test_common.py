@@ -31,11 +31,23 @@ def test_derive_wing_lowercases_and_keeps_hyphens(tmp_path):
 
 def test_sanitize_wing_name_strips_unsafe_chars():
     assert sanitize_wing_name("foo bar/baz") == "foo-bar-baz"
-    assert sanitize_wing_name("foo  bar") == "foo-bar"
+    assert sanitize_wing_name("foo-/bar") == "foo-bar"   # actually exercises the -+ collapse
     assert sanitize_wing_name("FOO_BAR") == "foo_bar"
+
+
+def test_sanitize_wing_name_raises_on_empty_result():
+    import pytest
+    with pytest.raises(ValueError):
+        sanitize_wing_name("")
+    with pytest.raises(ValueError):
+        sanitize_wing_name("---")
+    with pytest.raises(ValueError):
+        sanitize_wing_name("///")
 
 
 def test_mempalace_env_sets_utf8():
     env = mempalace_env()
     assert env["PYTHONIOENCODING"] == "utf-8"
-    assert "PATH" in env or "Path" in env
+    # Verify it's a copy of os.environ (not the same dict) and inherited keys
+    assert env is not os.environ
+    assert len(env) > 1
