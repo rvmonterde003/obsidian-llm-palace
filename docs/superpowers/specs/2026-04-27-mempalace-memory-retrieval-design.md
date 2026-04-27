@@ -1,7 +1,7 @@
 # MemPalace Memory Retrieval — Design Spec
 
 **Date:** 2026-04-27
-**Owner:** rm03-adkd
+**Owner:** rvmonterde003
 **Status:** Draft (pending user approval)
 **Scope:** Wire MemPalace as the OS-wide conversation-memory layer for Claude Code, backfilled from existing session transcripts and partitioned per project.
 
