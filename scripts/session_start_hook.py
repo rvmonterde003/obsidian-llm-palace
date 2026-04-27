@@ -9,7 +9,9 @@ import sys
 from pathlib import Path
 from typing import List
 
-from scripts._common import derive_wing_from_cwd, mempalace_env
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts._common import derive_wing_from_cwd, mempalace_env  # noqa: E402
 
 
 DEFAULT_SKIP_FILE = Path(__file__).parent / "wake_up_skip_prefixes.txt"
