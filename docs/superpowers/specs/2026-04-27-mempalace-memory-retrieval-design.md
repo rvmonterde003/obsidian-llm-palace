@@ -384,5 +384,5 @@ In each opted-in project's root:
 ## Open questions for v2 (not blocking)
 
 - Whether `SAVE_INTERVAL=15` is right for this user's session shape. Revisit after a week of dogfooding.
-- Whether to also mine the `obsidian-llm-palace/llm-palace/wiki/` markdown into the palace (project-style mining) so semantic search hits across both compiled-knowledge and conversation layers. Defer until the conversation-only setup is stable.
+- Whether to also mine the `obsidian-llm-palace/obsidian-llm-palace/wiki/` markdown (the inner vault) into the palace as project-style mining, so semantic search hits across both compiled-knowledge and conversation layers. Defer until the conversation-only setup is stable.
 - Whether the per-project `CLAUDE.md` should also pin search-scope defaults ("only cross-search wings on explicit ask"). Current design relies on Claude's judgment.

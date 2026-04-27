@@ -949,12 +949,12 @@ Expected: Claude runs the bash command, prints hits (assuming the backfill picke
 **Goal:** Pin the wing name for the two highest-traffic projects so Claude doesn't drift on naming. Other projects can be opted in later by repeating this pattern.
 
 **Files:**
-- Modify: `C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace/llm-palace/CLAUDE.md`
+- Modify: `C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace/obsidian-llm-palace/CLAUDE.md` (the inner vault folder, not the repo root)
 - Modify: `C:/Users/Admin/Desktop/AD-KD/betaflight-sitl-msp-comms/CLAUDE.md` (create if missing)
 
 - [ ] **Step 1: Append to obsidian-llm-palace CLAUDE.md**
 
-Open `C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace/llm-palace/CLAUDE.md`. Append at the end:
+Open `C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace/obsidian-llm-palace/CLAUDE.md`. Append at the end:
 
 ```markdown
 
@@ -984,7 +984,7 @@ If it exists, append the same `## MemPalace` section as Step 1 (with `Wing: beta
 
 ```bash
 cd C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace
-git add llm-palace/CLAUDE.md
+git add obsidian-llm-palace/CLAUDE.md
 git commit -m "docs: declare MemPalace wing for obsidian-llm-palace"
 ```
 
