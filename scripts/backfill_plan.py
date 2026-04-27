@@ -41,7 +41,9 @@ def decode_wing_from_encoded(encoded: str) -> str:
                         s = s[len(nested_prefix):]
                         break
             break
-    return sanitize_wing_name(s) or "unnamed"
+    if not s:
+        return "unnamed"
+    return sanitize_wing_name(s)
 
 
 def is_likely_noise(encoded: str) -> bool:
@@ -68,7 +70,7 @@ def scan_projects(projects_dir: Path) -> List[Dict]:
 
 def write_plan(rows: List[Dict], out_path: Path) -> None:
     """Write rows to YAML in a stable order."""
-    out_path.write_text(yaml.safe_dump(rows, sort_keys=False))
+    out_path.write_text(yaml.safe_dump(rows, sort_keys=False), encoding="utf-8")
 
 
 def main() -> int:

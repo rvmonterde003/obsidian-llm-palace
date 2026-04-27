@@ -18,8 +18,18 @@ def test_decode_nested_with_hyphens_uses_last_two_segments_when_unambiguous():
     assert decode_wing_from_encoded("C--Users-Admin-Desktop-AD-KD") == "ad-kd"
 
 
-def test_decode_lowercases_pascal_case():
+def test_decode_strips_desktop_and_primeai_nested():
     assert decode_wing_from_encoded("C--Users-Admin-Desktop-PrimeAI-Joey-Munoz") == "joey-munoz"
+
+
+def test_decode_bare_admin_does_not_crash():
+    # C--Users-Admin strips to "" — must return 'unnamed', not raise
+    assert decode_wing_from_encoded("C--Users-Admin") == "unnamed"
+
+
+def test_decode_bare_without_desktop_prefix():
+    assert decode_wing_from_encoded("C--Users-Admin-Claude-tools") == "claude-tools"
+    assert decode_wing_from_encoded("C--Users-Admin-robotics-ai-thinking") == "robotics-ai-thinking"
 
 
 def test_is_likely_noise_flags_bare_desktop():
