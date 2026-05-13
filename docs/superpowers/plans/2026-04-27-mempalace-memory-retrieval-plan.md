@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.13 (Windows), `mempalace` 3.3.0 (already installed), `pyyaml` (must install), `pytest` + `pytest-mock` for tests, Claude Code hooks/MCP infrastructure.
 
-**Working directory for all tasks:** `C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace`. Reference spec: `docs/superpowers/specs/2026-04-27-mempalace-memory-retrieval-design.md`.
+**Working directory for all tasks:** `~/Desktop/projects/obsidian-llm-palace`. Reference spec: `docs/superpowers/specs/2026-04-27-mempalace-memory-retrieval-design.md`.
 
 **Critical Windows preflight (one-time, before any task):**
 ```bash
@@ -106,9 +106,9 @@ def test_derive_wing_from_cwd_returns_basename(tmp_path):
 
 
 def test_derive_wing_lowercases_and_keeps_hyphens(tmp_path):
-    project = tmp_path / "Cash-Flow-Management"
+    project = tmp_path / "Finance-App"
     project.mkdir()
-    assert derive_wing_from_cwd(str(project)) == "cash-flow-management"
+    assert derive_wing_from_cwd(str(project)) == "finance-app"
 
 
 def test_sanitize_wing_name_strips_unsafe_chars():
@@ -239,41 +239,41 @@ from scripts.backfill_plan import (
 
 
 def test_decode_strips_drive_prefix():
-    assert decode_wing_from_encoded("C--Users-Admin-Desktop-AD-KD-betaflight-sitl-msp-comms") == "betaflight-sitl-msp-comms"
+    assert decode_wing_from_encoded("C--Users-alice-Desktop-projects-widget-engine") == "widget-engine"
 
 
-def test_decode_nested_with_hyphens_uses_last_two_segments_when_unambiguous():
-    # AD-KD itself is a project that contains hyphens — we don't try to be clever, just take last segment by hyphen
-    # The real disambiguation is the human reviewing backfill-plan.yaml
-    assert decode_wing_from_encoded("C--Users-Admin-Desktop-AD-KD") == "ad-kd"
+def test_decode_handles_project_with_hyphens():
+    # Project names with hyphens are reversed as-is after the prefix is stripped.
+    # Disambiguation is the human reviewing backfill-plan.yaml.
+    assert decode_wing_from_encoded("C--Users-alice-Desktop-my-multi-hyphen-project") == "my-multi-hyphen-project"
 
 
 def test_decode_lowercases_pascal_case():
-    assert decode_wing_from_encoded("C--Users-Admin-Desktop-PrimeAI-Joey-Munoz") == "joey-munoz"
+    assert decode_wing_from_encoded("C--Users-alice-Desktop-client-work-acme") == "joey-munoz"
 
 
 def test_is_likely_noise_flags_bare_desktop():
-    assert is_likely_noise("C--Users-Admin-Desktop") is True
-    assert is_likely_noise("C--Users-Admin") is True
-    assert is_likely_noise("C--Users-Admin-Desktop-AD-KD-betaflight-sitl-msp-comms") is False
+    assert is_likely_noise("C--Users-alice-Desktop") is True
+    assert is_likely_noise("C--Users-alice") is True
+    assert is_likely_noise("C--Users-alice-Desktop-projects-widget-engine") is False
 
 
 def test_scan_projects_counts_jsonl(tmp_path):
-    proj_dir = tmp_path / "C--Users-Admin-foo"
+    proj_dir = tmp_path / "C--Users-alice-foo"
     proj_dir.mkdir()
     (proj_dir / "session1.jsonl").write_text("{}")
     (proj_dir / "session2.jsonl").write_text("{}")
     (proj_dir / "ignore.txt").write_text("x")
     rows = scan_projects(tmp_path)
     assert len(rows) == 1
-    assert rows[0]["encoded"] == "C--Users-Admin-foo"
+    assert rows[0]["encoded"] == "C--Users-alice-foo"
     assert rows[0]["transcripts"] == 2
     assert rows[0]["wing"] == "foo"
     assert rows[0]["include"] is True
 
 
 def test_scan_projects_marks_noise_include_false(tmp_path):
-    noise_dir = tmp_path / "C--Users-Admin-Desktop"
+    noise_dir = tmp_path / "C--Users-alice-Desktop"
     noise_dir.mkdir()
     (noise_dir / "session1.jsonl").write_text("{}")
     rows = scan_projects(tmp_path)
@@ -309,29 +309,24 @@ from scripts._common import CLAUDE_PROJECTS_DIR, sanitize_wing_name
 
 # Encoded folder prefixes that are almost certainly accidental parent-dir sessions
 NOISE_PATTERNS = {
-    "C--Users-Admin",
-    "C--Users-Admin-Desktop",
-    "C--Users-Admin-Desktop-AD-KD",  # parent-of-projects, not a project
+    "C--Users-alice",
+    "C--Users-alice-Desktop",
+    "C--Users-alice-Desktop-projects",  # parent-of-projects, not a project
 }
 
 
 def decode_wing_from_encoded(encoded: str) -> str:
     """Best-guess wing name from Claude Code's encoded folder name.
 
-    Claude Code encodes `C:\\Users\\Admin\\Desktop\\foo` as
-    `C--Users-Admin-Desktop-foo`. Project names with hyphens (AD-KD) are
-    ambiguous to reverse — we take everything after `Desktop-` (or after the
-    last well-known prefix) and lowercase it. The user is expected to review
-    the generated YAML and fix any wing name they don't like.
+    Claude Code encodes `C:\\Users\\<name>\\Desktop\\foo` as
+    `C--Users-<name>-Desktop-foo`. Project names with hyphens are
+    ambiguous to reverse — we strip the well-known platform/parent prefixes
+    and lowercase it. The user is expected to review the generated YAML and
+    fix any wing name they don't like.
     """
-    s = encoded
-    # Strip drive prefix
-    if s.startswith("C--Users-Admin-"):
-        s = s[len("C--Users-Admin-"):]
-    elif s.startswith("C--Users-Admin"):
-        s = s[len("C--Users-Admin"):]
-    # Strip common parent dirs
-    for prefix in ("Desktop-", "robotics-ai-thinking-", "Personal-Projects-", "PrimeAI-", "AD-KD-", "Claude-tools-"):
+    s = USER_PREFIX_RE.sub("", encoded, count=1)
+    # Strip common parent dirs (Desktop, Documents, Projects, code, ...)
+    for prefix in ("Desktop-", "Documents-", "Projects-", "projects-", "code-", "workspace-"):
         if s.startswith(prefix):
             s = s[len(prefix):]
             break
@@ -393,7 +388,7 @@ Expected: 7 passed.
 ```bash
 python -m scripts.backfill_plan
 ```
-Expected: `Wrote 19 rows to .../backfill-plan.yaml`. Open `backfill-plan.yaml` and review — confirm wing names look sensible, decide which `include: true/false` flags to flip (especially PrimeAI client work). **Do not edit the YAML to remove rows; flip `include` flags only.**
+Expected: `Wrote N rows to .../backfill-plan.yaml`. Open `backfill-plan.yaml` and review — confirm wing names look sensible, decide which `include: true/false` flags to flip (especially any client work under NDA). **Do not edit the YAML to remove rows; flip `include` flags only.**
 
 - [ ] **Step 6: Commit**
 
@@ -430,7 +425,7 @@ from scripts.backfill_run import (
 
 def test_build_mine_command_includes_mode_convos_and_wing():
     cmd = build_mine_command(
-        encoded_dir=Path("/fake/projects/C--Users-Admin-foo"),
+        encoded_dir=Path("/fake/projects/C--Users-alice-foo"),
         wing="foo",
     )
     assert "mempalace" in cmd
@@ -439,7 +434,7 @@ def test_build_mine_command_includes_mode_convos_and_wing():
     assert "convos" in cmd
     assert "--wing" in cmd
     assert "foo" in cmd
-    assert str(Path("/fake/projects/C--Users-Admin-foo")) in cmd
+    assert str(Path("/fake/projects/C--Users-alice-foo")) in cmd
 
 
 def test_run_one_row_calls_subprocess_with_utf8_env(mocker):
@@ -593,9 +588,9 @@ Expected: status now shows N wings (where N = number of `include: true` rows in 
 
 - [ ] **Step 4: Smoke test a search**
 
-Pick a wing you know contains a known phrase (e.g., `betaflight-sitl-msp-comms`):
+Pick a wing you know contains a known phrase (e.g., `widget-engine`):
 ```bash
-PYTHONIOENCODING=utf-8 python -m mempalace search "MSP" --wing betaflight-sitl-msp-comms --limit 3
+PYTHONIOENCODING=utf-8 python -m mempalace search "MSP" --wing widget-engine --limit 3
 ```
 Expected: at least one hit with content from a past Claude Code session about MSP. **No commit** — this task changes only `~/.mempalace/`, which is outside the repo.
 
@@ -838,7 +833,7 @@ If it doesn't exist, that's fine — we'll create it.
 - [ ] **Step 2: Determine the absolute path to `session_start_hook.py`**
 
 ```bash
-python -c "from pathlib import Path; print(Path.home() / 'Desktop' / 'AD-KD' / 'obsidian-llm-palace' / 'scripts' / 'session_start_hook.py')"
+python -c "from pathlib import Path; print((Path.cwd() / 'scripts' / 'session_start_hook.py').resolve())"
 ```
 Expected: the absolute path. Note this for the next step.
 
@@ -949,12 +944,12 @@ Expected: Claude runs the bash command, prints hits (assuming the backfill picke
 **Goal:** Pin the wing name for the two highest-traffic projects so Claude doesn't drift on naming. Other projects can be opted in later by repeating this pattern.
 
 **Files:**
-- Modify: `C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace/obsidian-llm-palace/CLAUDE.md` (the inner vault folder, not the repo root)
-- Modify: `C:/Users/Admin/Desktop/AD-KD/betaflight-sitl-msp-comms/CLAUDE.md` (create if missing)
+- Modify: `~/Desktop/projects/obsidian-llm-palace/obsidian-llm-palace/CLAUDE.md` (the inner vault folder, not the repo root)
+- Modify: `~/Desktop/projects/widget-engine/CLAUDE.md` (create if missing)
 
 - [ ] **Step 1: Append to obsidian-llm-palace CLAUDE.md**
 
-Open `C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace/obsidian-llm-palace/CLAUDE.md`. Append at the end:
+Open `~/Desktop/projects/obsidian-llm-palace/obsidian-llm-palace/CLAUDE.md`. Append at the end:
 
 ```markdown
 
@@ -963,10 +958,10 @@ Open `C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace/obsidian-llm-palace/CLAUD
 Wing: obsidian-llm-palace
 ```
 
-- [ ] **Step 2: Verify or create betaflight-sitl-msp-comms CLAUDE.md**
+- [ ] **Step 2: Verify or create widget-engine CLAUDE.md**
 
 ```bash
-ls "C:/Users/Admin/Desktop/AD-KD/betaflight-sitl-msp-comms/CLAUDE.md" 2>&1 || echo "missing"
+ls "~/Desktop/projects/widget-engine/CLAUDE.md" 2>&1 || echo "missing"
 ```
 
 If missing, create it with this content:
@@ -975,26 +970,26 @@ If missing, create it with this content:
 
 ## MemPalace
 
-Wing: betaflight-sitl-msp-comms
+Wing: widget-engine
 ```
 
-If it exists, append the same `## MemPalace` section as Step 1 (with `Wing: betaflight-sitl-msp-comms`).
+If it exists, append the same `## MemPalace` section as Step 1 (with `Wing: widget-engine`).
 
 - [ ] **Step 3: Commit obsidian-llm-palace CLAUDE.md change**
 
 ```bash
-cd C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace
+cd ~/Desktop/projects/obsidian-llm-palace
 git add obsidian-llm-palace/CLAUDE.md
 git commit -m "docs: declare MemPalace wing for obsidian-llm-palace"
 ```
 
-- [ ] **Step 4: Commit betaflight-sitl-msp-comms CLAUDE.md change**
+- [ ] **Step 4: Commit widget-engine CLAUDE.md change**
 
 ```bash
-cd C:/Users/Admin/Desktop/AD-KD/betaflight-sitl-msp-comms
+cd ~/Desktop/projects/widget-engine
 git add CLAUDE.md
-git commit -m "docs: declare MemPalace wing for betaflight-sitl-msp-comms"
-cd C:/Users/Admin/Desktop/AD-KD/obsidian-llm-palace
+git commit -m "docs: declare MemPalace wing for widget-engine"
+cd ~/Desktop/projects/obsidian-llm-palace
 ```
 
 (Each repo gets its own commit because they're separate gits.)
@@ -1366,11 +1361,11 @@ Expected: `mempalace` listed.
 
 - [ ] **Step 3: Save hook smoke test**
 
-Open a fresh Claude Code session in `betaflight-sitl-msp-comms`. Have a short conversation (~16 turns) about a unique phrase like "**plan-13-canary-msp-frame**". End the session normally.
+Open a fresh Claude Code session in `widget-engine`. Have a short conversation (~16 turns) about a unique phrase like "**plan-13-canary-msp-frame**". End the session normally.
 
 Then verify:
 ```bash
-PYTHONIOENCODING=utf-8 python -m mempalace search "plan-13-canary-msp-frame" --wing betaflight-sitl-msp-comms
+PYTHONIOENCODING=utf-8 python -m mempalace search "plan-13-canary-msp-frame" --wing widget-engine
 ```
 Expected: at least one hit. **If zero hits**: the Stop hook didn't fire or Claude didn't actually save. Check `~/.mempalace/hook_state/` for activity, re-read `~/.claude/settings.json`, confirm `python -m mempalace` resolves on PATH.
 

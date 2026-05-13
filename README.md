@@ -129,7 +129,13 @@ Then in Claude Code, type:
 /setup
 ```
 
-This invokes the project-level `setup.md` slash command. Claude reads it as a playbook and walks you through every step interactively — installing dependencies, initializing the palace, optional backfill of `~/.claude/projects/` history, registering the MCP server, and merging hooks into your `~/.claude/settings.json` (with backup). Skip to step "Open in Obsidian" below once it's done.
+This invokes the project-level `setup.md` slash command. Claude reads it as a playbook and walks you through every step interactively — installing dependencies, initializing the palace, optional backfill of `~/.claude/projects/` history, registering the MCP server, and merging hooks (Stop, PreCompact, SessionStart) into your `~/.claude/settings.json` (with backup). Once it finishes you'll have:
+
+- `/setup` — re-run the playbook (re-entrant by design; safe to run twice)
+- `/save` — distill the current session into MemPalace + refresh `wiki/hot.md` and `wiki/log.md`
+- `/recall` — with no args: resume the last session. With args: semantic search across MemPalace.
+
+Skip to step "Open in Obsidian" below once it's done.
 
 If you'd rather do it manually, the rest of this section walks through the same steps. Pick whichever you prefer.
 
@@ -193,9 +199,9 @@ claude mcp add mempalace -- python -m mempalace.mcp_server
 > claude mcp add mempalace -- "C:\Python313\python.exe" -m mempalace.mcp_server
 > ```
 
-### Step 7: (Optional) Wire auto-save hooks
+### Step 7: (Optional) Wire auto-save + wake-up hooks
 
-Add these to your `.claude/settings.local.json` to automatically save conversations to MemPalace:
+Add these to your user-global `~/.claude/settings.json` so every Claude Code session in *any* project auto-saves to MemPalace, and so each session boots with wake-up context from the relevant wing:
 
 ```json
 {
@@ -222,17 +228,56 @@ Add these to your `.claude/settings.local.json` to automatically save conversati
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python <ABSOLUTE_PATH_TO_REPO>/scripts/session_start_hook.py",
+            "timeout": 15
+          }
+        ]
+      }
     ]
   }
 }
 ```
 
+Replace `<ABSOLUTE_PATH_TO_REPO>` with the absolute path returned by:
+
+```bash
+python -c "from pathlib import Path; print((Path.cwd() / 'scripts' / 'session_start_hook.py').resolve())"
+```
+
+The SessionStart hook injects ~600–900 tokens of wake-up context (the relevant MemPalace wing's recent drawers) into Claude's initial context window. Wings prefixed `_archive_` are auto-skipped via `scripts/wake_up_skip_prefixes.txt`.
+
+> **Save Behavior in this vault**: the per-turn Stop save is intentionally deferred — Claude only saves at session end, on explicit `/save`, when you say a pause-phrase ("let's wrap this up", "I'll resume later"), or when PreCompact fires. See `obsidian-llm-palace/CLAUDE.md` → *Save Behavior* for the rationale (keeps costs low without losing context).
+
 ### Step 8: Restart Claude Code
 
 ```bash
-# Close and reopen Claude Code to activate the MCP server
+# Close and reopen Claude Code to activate the MCP server and hooks
 claude
 ```
+
+### Step 9: First-session smoke test
+
+In a fresh Claude Code session inside this repo, type:
+
+```
+/recall
+```
+
+With no args, `/recall` reads `wiki/hot.md` + the last `wiki/log.md` entry + recent MemPalace diary entries to resume the previous session. On a fresh install this will report an empty palace — confirming the wiring works end-to-end before you start accumulating real history.
+
+When you're done for the day, type:
+
+```
+/save
+```
+
+This distills the conversation into a MemPalace diary entry, one or more focused drawers, and refreshes `wiki/hot.md` + appends to `wiki/log.md`. Next session, `/recall` (or just asking "where did we leave off?") will pick up where you stopped.
 
 ---
 
@@ -272,14 +317,26 @@ Claude scans all pages and produces a health report in `outputs/`.
 ### Saving session context
 
 ```
-Save this session.
+/save
 ```
 
-Updates `wiki/hot.md` with key takeaways so the next session starts with context.
+Or just tell Claude any pause-phrase like *"let's wrap this up"*, *"I'll resume later"*, or *"save what we have"*. Claude distills the session into a MemPalace diary entry, one or more focused drawers, and refreshes `wiki/hot.md` + appends to `wiki/log.md`.
+
+### Resuming a prior session
+
+```
+/recall
+```
+
+With no args, reads `wiki/hot.md` + the last `wiki/log.md` entry + recent MemPalace diary entries and reports what was decided, what's open, and the best next step. Equivalent to asking *"where did we leave off?"*.
 
 ### Searching conversation history (via MemPalace)
 
-If the MCP server is active, Claude can use MemPalace tools directly:
+```
+/recall <query>
+```
+
+With args, performs a semantic search across MemPalace and returns the top matches with drawer IDs you can drill into. Or just ask Claude directly:
 
 ```
 Search MemPalace for the conversation where we decided on the sensor array layout.

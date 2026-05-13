@@ -10,7 +10,7 @@ from scripts.backfill_run import (
 
 def test_build_mine_command_includes_mode_convos_and_wing():
     cmd = build_mine_command(
-        encoded_dir=Path("/fake/projects/C--Users-Admin-foo"),
+        encoded_dir=Path("/fake/projects/C--Users-alice-foo"),
         wing="foo",
     )
     assert "mempalace" in cmd
@@ -19,7 +19,7 @@ def test_build_mine_command_includes_mode_convos_and_wing():
     assert "convos" in cmd
     assert "--wing" in cmd
     assert "foo" in cmd
-    assert str(Path("/fake/projects/C--Users-Admin-foo")) in cmd
+    assert str(Path("/fake/projects/C--Users-alice-foo")) in cmd
 
 
 def test_run_one_row_calls_subprocess_with_utf8_env(mocker):

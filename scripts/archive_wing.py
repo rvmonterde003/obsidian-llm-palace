@@ -34,8 +34,8 @@ def list_all_drawer_ids_for_wing(wing: str) -> List[str]:
         if not page:
             break
         for drawer in page:
-            if "id" in drawer:
-                ids.append(drawer["id"])
+            if "drawer_id" in drawer:
+                ids.append(drawer["drawer_id"])
         offset += PAGE_SIZE
     return ids
 

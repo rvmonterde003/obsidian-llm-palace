@@ -8,52 +8,56 @@ from scripts.backfill_plan import (
 )
 
 
-def test_decode_strips_drive_prefix():
-    assert decode_wing_from_encoded("C--Users-Admin-Desktop-AD-KD-betaflight-sitl-msp-comms") == "betaflight-sitl-msp-comms"
+def test_decode_strips_windows_user_prefix():
+    assert decode_wing_from_encoded("C--Users-alice-Desktop-projects-widget-engine") == "widget-engine"
 
 
-def test_decode_nested_with_hyphens_uses_last_two_segments_when_unambiguous():
-    # AD-KD itself is a project that contains hyphens — we don't try to be clever, just take last segment by hyphen
-    # The real disambiguation is the human reviewing backfill-plan.yaml
-    assert decode_wing_from_encoded("C--Users-Admin-Desktop-AD-KD") == "ad-kd"
+def test_decode_strips_macos_user_prefix():
+    assert decode_wing_from_encoded("-Users-alice-Documents-widget-engine") == "widget-engine"
 
 
-def test_decode_strips_desktop_and_primeai_nested():
-    assert decode_wing_from_encoded("C--Users-Admin-Desktop-PrimeAI-Joey-Munoz") == "joey-munoz"
+def test_decode_strips_linux_user_prefix():
+    assert decode_wing_from_encoded("-home-alice-code-widget-engine") == "widget-engine"
 
 
-def test_decode_bare_admin_does_not_crash():
-    # C--Users-Admin strips to "" — must return 'unnamed', not raise
-    assert decode_wing_from_encoded("C--Users-Admin") == "unnamed"
+def test_decode_handles_project_with_hyphens():
+    # Project names with hyphens are reversed as-is after the prefix is stripped;
+    # disambiguation is the human reviewing backfill-plan.yaml.
+    assert decode_wing_from_encoded("C--Users-bob-Desktop-my-multi-hyphen-project") == "my-multi-hyphen-project"
 
 
-def test_decode_bare_without_desktop_prefix():
-    assert decode_wing_from_encoded("C--Users-Admin-Claude-tools") == "claude-tools"
-    assert decode_wing_from_encoded("C--Users-Admin-robotics-ai-thinking") == "robotics-ai-thinking"
+def test_decode_bare_user_does_not_crash():
+    # `C--Users-<name>` strips to "" — must return 'unnamed', not raise.
+    assert decode_wing_from_encoded("C--Users-alice") == "unnamed"
 
 
-def test_is_likely_noise_flags_bare_desktop():
-    assert is_likely_noise("C--Users-Admin-Desktop") is True
-    assert is_likely_noise("C--Users-Admin") is True
-    assert is_likely_noise("C--Users-Admin-Desktop-AD-KD-betaflight-sitl-msp-comms") is False
+def test_decode_without_parent_dir():
+    assert decode_wing_from_encoded("C--Users-alice-claude-tools") == "claude-tools"
+
+
+def test_is_likely_noise_flags_bare_parent_dirs():
+    assert is_likely_noise("C--Users-alice-Desktop") is True
+    assert is_likely_noise("C--Users-alice") is True
+    assert is_likely_noise("-Users-alice-Documents") is True
+    assert is_likely_noise("C--Users-alice-Desktop-projects-widget-engine") is False
 
 
 def test_scan_projects_counts_jsonl(tmp_path):
-    proj_dir = tmp_path / "C--Users-Admin-foo"
+    proj_dir = tmp_path / "C--Users-alice-foo"
     proj_dir.mkdir()
     (proj_dir / "session1.jsonl").write_text("{}")
     (proj_dir / "session2.jsonl").write_text("{}")
     (proj_dir / "ignore.txt").write_text("x")
     rows = scan_projects(tmp_path)
     assert len(rows) == 1
-    assert rows[0]["encoded"] == "C--Users-Admin-foo"
+    assert rows[0]["encoded"] == "C--Users-alice-foo"
     assert rows[0]["transcripts"] == 2
     assert rows[0]["wing"] == "foo"
     assert rows[0]["include"] is True
 
 
 def test_scan_projects_marks_noise_include_false(tmp_path):
-    noise_dir = tmp_path / "C--Users-Admin-Desktop"
+    noise_dir = tmp_path / "C--Users-alice-Desktop"
     noise_dir.mkdir()
     (noise_dir / "session1.jsonl").write_text("{}")
     rows = scan_projects(tmp_path)

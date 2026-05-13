@@ -126,3 +126,22 @@ structured knowledge; MemPalace handles verbatim conversation recall.
 ## MemPalace
 
 Wing: obsidian-llm-palace
+
+## Save Behavior
+
+This vault uses **manual end-of-session saves**, not per-turn auto-saves. Save only when one of the following happens:
+
+1. The user explicitly invokes `/save`.
+2. The user says one of these end-of-session phrases — treat as an implicit `/save`:
+   - "I'll resume later"
+   - "let's end this session" / "let's wrap this up" / "ending the session"
+   - "save this session" / "save what we have" / "save and pause"
+   - "let's pause here" / "calling it for now"
+   - "shutting down for the day"
+3. The PreCompact hook fires (context is about to be compressed) — save immediately to avoid loss.
+
+**When the Stop hook fires per turn without one of the above triggers**: skip the save. Briefly state that the per-turn auto-save was deferred and continue the conversation. Per-turn saves are intentionally disabled in this vault to keep costs low — see `wiki/hot.md` for the architectural rationale.
+
+## Session Resumption
+
+At session start, if the user asks "what was the latest", "what's next", "where did we leave off", or similar, run `/recall` (no args) to read `wiki/hot.md` + last log entry + recent diary. Don't guess — read the files.

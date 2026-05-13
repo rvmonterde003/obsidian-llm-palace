@@ -1,5 +1,17 @@
-This is your new *vault*.
+---
+title: Welcome
+type: meta
+created: 2026-05-09
+updated: 2026-05-09
+---
 
-Make a note of something, [[create a link]], or try [the Importer](https://help.obsidian.md/Plugins/Importer)!
+# Welcome
 
-When you're ready, delete this note and make the vault your own.
+This is an LLM Wiki + MemPalace vault. Start with [[overview]] and [[index]].
+
+- **Schema**: see `CLAUDE.md` (the rules Claude follows)
+- **Sources**: drop into `raw/{articles,papers,repos,data,images,assets}/`
+- **Compiled knowledge**: lives in `wiki/{concepts,entities,sources,comparisons,meta}/`
+- **Conversation memory**: MemPalace (separate from this vault)
+
+To ingest: add files to `raw/`, then ask Claude "ingest these."

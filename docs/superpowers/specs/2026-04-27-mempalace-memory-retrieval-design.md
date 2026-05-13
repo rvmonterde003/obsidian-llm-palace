@@ -1,7 +1,6 @@
 # MemPalace Memory Retrieval — Design Spec
 
 **Date:** 2026-04-27
-**Owner:** rvmonterde003
 **Status:** Draft (pending user approval)
 **Scope:** Wire MemPalace as the OS-wide conversation-memory layer for Claude Code, backfilled from existing session transcripts and partitioned per project.
 
@@ -58,7 +57,7 @@ One OS-wide palace at `~/.mempalace/palace/` (Chroma vectors + SQLite knowledge 
 ### Correctness invariants
 
 - **One palace, many wings.** No per-project palace duplicates.
-- **Wing name = last path segment of project root** (e.g., `betaflight-sitl-msp-comms`).
+- **Wing name = last path segment of project root** (e.g., `widget-engine`).
 - **Hooks live in `~/.claude/settings.json` (user-global)** — all projects auto-save without per-repo wiring.
 - **Palace stays at `~/.mempalace/palace`** — outside any git repo. Conversation contents never accidentally committed.
 - **Windows Unicode**: every `mempalace` invocation prefixed with `PYTHONIOENCODING=utf-8` to avoid the cp1252 crash.
@@ -69,7 +68,7 @@ One OS-wide palace at `~/.mempalace/palace/` (Chroma vectors + SQLite knowledge 
 
 **Inputs:** 19 directories under `~/.claude/projects/<encoded-folder>/*.jsonl`.
 
-**Naming problem:** Claude Code encodes folder paths by replacing `\` with `-`, producing names like `C--Users-Admin-Desktop-AD-KD-betaflight-sitl-msp-comms`. Project names with hyphens (`AD-KD`, `wfa-remote-vibe-coding`) make this lossy to auto-decode. Some entries are accidental "parent dir" sessions (`C--Users-Admin-Desktop`).
+**Naming problem:** Claude Code encodes folder paths by replacing `\` with `-`, producing names like `C--Users-<user>-Desktop-projects-widget-engine`. Project names with hyphens make this lossy to auto-decode. Some entries are accidental "parent dir" sessions (`C--Users-<user>-Desktop`).
 
 **Solution:** generated review-then-execute mapping file.
 
@@ -78,16 +77,16 @@ One OS-wide palace at `~/.mempalace/palace/` (Chroma vectors + SQLite knowledge 
 Enumerates `~/.claude/projects/*` and writes `backfill-plan.yaml`:
 
 ```yaml
-- encoded: C--Users-Admin-Desktop-AD-KD-betaflight-sitl-msp-comms
-  wing: betaflight-sitl-msp-comms
+- encoded: C--Users-<user>-Desktop-projects-widget-engine
+  wing: widget-engine
   transcripts: 4
   include: true
-- encoded: C--Users-Admin-Desktop
+- encoded: C--Users-<user>-Desktop
   wing: desktop-noise
   transcripts: 1
   include: false        # suggested skip — parent-dir noise
-- encoded: C--Users-Admin-Desktop-PrimeAI-Joey-Munoz
-  wing: primeai-joey-munoz
+- encoded: C--Users-<user>-Desktop-client-work-acme
+  wing: client-work-acme
   transcripts: 12
   include: true         # client work — flip to false if NDA-sensitive
 ```
@@ -117,8 +116,8 @@ PYTHONIOENCODING=utf-8 python -m mempalace mine \
 ### Verification after backfill
 
 ```bash
-mempalace status                                                         # drawer count per wing
-mempalace search "MSP serial protocol" --wing betaflight-sitl-msp-comms  # smoke test
+mempalace status                                          # drawer count per wing
+mempalace search "<phrase>" --wing widget-engine          # smoke test
 ```
 
 ---
@@ -227,7 +226,7 @@ Run: `python -m mempalace search "$ARGUMENTS" --limit 5`
 Then read the matching drawers and synthesize an answer with citations.
 ```
 
-Used as `/recall MSP serial protocol decisions` when Claude hasn't surfaced the right thing on its own.
+Used as `/recall <topic> decisions` when Claude hasn't surfaced the right thing on its own.
 
 ### Why C (per-prompt auto-search) is excluded
 
@@ -244,7 +243,7 @@ Every project that should have memory adds a `## MemPalace` section to its `CLAU
 ```markdown
 ## MemPalace
 
-Wing: betaflight-sitl-msp-comms
+Wing: widget-engine
 ```
 
 Two-line section. Claude reads `CLAUDE.md` at every session start, so the wing name is resolved deterministically.
@@ -254,7 +253,7 @@ Two-line section. Claude reads `CLAUDE.md` at every session start, so the wing n
 **At save time:**
 1. `Wing:` in `CLAUDE.md` → use that.
 2. No `CLAUDE.md` or no `Wing:` line → `basename(cwd)`.
-3. Empty/generic basename (`Desktop`, `AD-KD`) → encoded `~/.claude/projects/<encoded>` dirname.
+3. Empty/generic basename (`Desktop`, parent-dir name) → encoded `~/.claude/projects/<encoded>` dirname.
 
 **At wake-up time** (SessionStart hook fires before Claude reads files): always `basename(cwd)`.
 
@@ -264,10 +263,10 @@ Two-line section. Claude reads `CLAUDE.md` at every session start, so the wing n
 
 | Project root | CLAUDE.md `Wing:` value |
 |---|---|
-| `~/Desktop/AD-KD/betaflight-sitl-msp-comms` | `betaflight-sitl-msp-comms` |
-| `~/Desktop/AD-KD/obsidian-llm-palace` | `obsidian-llm-palace` |
-| `~/robotics-ai-thinking` | `robotics-ai-thinking` |
-| `~/Desktop/Personal-Projects/Cash-Flow-Management` | `cash-flow-management` |
+| `~/Desktop/projects/widget-engine` | `widget-engine` |
+| `~/Desktop/projects/obsidian-llm-palace` | `obsidian-llm-palace` |
+| `~/code/ai-thinking` | `ai-thinking` |
+| `~/Desktop/Personal-Projects/Finance-App` | `finance-app` |
 
 ### Onboarding a new project
 
@@ -340,9 +339,9 @@ Run in order. Each must pass before the next.
 3. **Backfill plan generation** — `python scripts/backfill_plan.py` → `backfill-plan.yaml` with 19 rows. Review.
 4. **Backfill execution** — `python scripts/backfill_run.py` → per-row "mined N exchanges into wing X" logs. End with `mempalace status` showing N wings.
 5. **MCP registration** — `claude mcp list` → `mempalace` listed.
-6. **Save hook smoke test** — start session in `betaflight-sitl-msp-comms`, exchange ~16 messages, end. `mempalace search "<phrase from session>" --wing betaflight-sitl-msp-comms` → ≥1 hit.
+6. **Save hook smoke test** — start session in any opted-in project, exchange ~16 messages, end. `mempalace search "<phrase from session>" --wing <wing>` → ≥1 hit.
 7. **Wake-up hook smoke test** — fresh session in same project, ask "what did we discuss last session?" → Claude references prior exchange unprompted.
-8. **`/recall` smoke test** — `/recall MSP serial protocol` → top hits printed inline.
+8. **`/recall` smoke test** — `/recall <phrase from a past session>` → top hits printed inline.
 
 ---
 
@@ -360,7 +359,7 @@ No state escapes into projects except the `CLAUDE.md` `Wing:` lines (harmless le
 
 ## 11. Deliverables
 
-In `obsidian-llm-palace/` (sibling to `betaflight-sitl-msp-comms`):
+In `obsidian-llm-palace/`:
 
 - `scripts/backfill_plan.py` — generates `backfill-plan.yaml` from `~/.claude/projects/`.
 - `scripts/backfill_run.py` — executes plan against `mempalace mine`.

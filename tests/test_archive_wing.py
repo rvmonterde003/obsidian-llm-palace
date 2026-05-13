@@ -10,8 +10,8 @@ def test_list_all_drawer_ids_paginates(mocker):
     fake_list = mocker.patch("scripts.archive_wing.tool_list_drawers")
     # First page returns 100, second returns 50, third returns 0
     fake_list.side_effect = [
-        {"drawers": [{"id": f"d{i}"} for i in range(100)]},
-        {"drawers": [{"id": f"d{i}"} for i in range(100, 150)]},
+        {"drawers": [{"drawer_id": f"d{i}"} for i in range(100)]},
+        {"drawers": [{"drawer_id": f"d{i}"} for i in range(100, 150)]},
         {"drawers": []},
     ]
     ids = list_all_drawer_ids_for_wing("foo")
@@ -88,7 +88,7 @@ def test_list_all_drawer_ids_returns_partial_on_exception(mocker):
     """If tool_list_drawers raises mid-pagination, return what we have so far."""
     fake_list = mocker.patch("scripts.archive_wing.tool_list_drawers")
     fake_list.side_effect = [
-        {"drawers": [{"id": f"d{i}"} for i in range(100)]},
+        {"drawers": [{"drawer_id": f"d{i}"} for i in range(100)]},
         RuntimeError("connection lost"),
     ]
     ids = list_all_drawer_ids_for_wing("foo")

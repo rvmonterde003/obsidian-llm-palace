@@ -1,4 +1,5 @@
 """Generate backfill-plan.yaml from ~/.claude/projects/ for human review."""
+import re
 import sys
 from pathlib import Path
 from typing import List, Dict
@@ -7,48 +8,64 @@ import yaml
 from scripts._common import CLAUDE_PROJECTS_DIR, sanitize_wing_name
 
 
-# Encoded folder prefixes that are almost certainly accidental parent-dir sessions
-NOISE_PATTERNS = {
-    "C--Users-Admin",
-    "C--Users-Admin-Desktop",
-    "C--Users-Admin-Desktop-AD-KD",  # parent-of-projects, not a project
-}
+# Encoded folder shapes that are almost certainly accidental parent-dir sessions.
+# Built dynamically from the prefix matched by USER_PREFIX_RE so it works for
+# any user/platform (we cannot list every "C--Users-<name>-Desktop" up front).
+_NOISE_TRAILING_SEGMENTS = {"", "Desktop", "Documents", "Projects", "code", "workspace"}
+
+# Matches the platform/user prefix Claude Code prepends to project folder names:
+#   Windows: "C:\Users\<NAME>\..." -> "C--Users-<NAME>-..."
+#   macOS:   "/Users/<NAME>/..."    -> "-Users-<NAME>-..."
+#   Linux:   "/home/<NAME>/..."     -> "-home-<NAME>-..."
+USER_PREFIX_RE = re.compile(
+    r"^(?:[A-Z]--Users|-Users|-home)-[^-]+-?"
+)
+
+# Parent-directory segments commonly seen between $HOME and the actual project.
+# These get stripped after USER_PREFIX_RE so the wing name is the project itself.
+_COMMON_PARENT_SEGMENTS = ("Desktop", "Documents", "Projects", "projects", "code", "workspace", "dev", "src")
+
+
+def _strip_user_prefix(encoded: str) -> str:
+    """Remove the leading drive + Users/<name> prefix."""
+    return USER_PREFIX_RE.sub("", encoded, count=1)
+
+
+def _strip_parent_segments(rest: str) -> str:
+    """Eat up to two common parent directory segments (e.g. Desktop, Projects)."""
+    for _ in range(2):
+        stripped = False
+        for seg in _COMMON_PARENT_SEGMENTS:
+            prefix = f"{seg}-"
+            if rest.startswith(prefix):
+                rest = rest[len(prefix):]
+                stripped = True
+                break
+        if not stripped:
+            break
+    return rest
 
 
 def decode_wing_from_encoded(encoded: str) -> str:
     """Best-guess wing name from Claude Code's encoded folder name.
 
-    Claude Code encodes `C:\\Users\\Admin\\Desktop\\foo` as
-    `C--Users-Admin-Desktop-foo`. Project names with hyphens (AD-KD) are
-    ambiguous to reverse — we take everything after `Desktop-` (or after the
-    last well-known prefix) and lowercase it. The user is expected to review
-    the generated YAML and fix any wing name they don't like.
+    Claude Code encodes absolute paths by replacing path separators with `-`.
+    On Windows, ``C:\\Users\\<name>\\Desktop\\foo`` becomes
+    ``C--Users-<name>-Desktop-foo``. Project names that contain hyphens are
+    inherently ambiguous to reverse — we strip the well-known user/parent
+    prefixes and let the human review the generated YAML.
     """
-    s = encoded
-    # Strip drive prefix
-    if s.startswith("C--Users-Admin-"):
-        s = s[len("C--Users-Admin-"):]
-    elif s.startswith("C--Users-Admin"):
-        s = s[len("C--Users-Admin"):]
-    # Strip common parent dirs (Desktop comes first, then project-specific parents)
-    for prefix in ("Desktop-", "robotics-ai-thinking-", "Personal-Projects-", "PrimeAI-", "AD-KD-", "Claude-tools-"):
-        if s.startswith(prefix):
-            s = s[len(prefix):]
-            # After stripping Desktop-, continue checking for nested parent dirs
-            if prefix == "Desktop-":
-                for nested_prefix in ("robotics-ai-thinking-", "Personal-Projects-", "PrimeAI-", "AD-KD-", "Claude-tools-"):
-                    if s.startswith(nested_prefix):
-                        s = s[len(nested_prefix):]
-                        break
-            break
+    s = _strip_user_prefix(encoded)
+    s = _strip_parent_segments(s)
     if not s:
         return "unnamed"
     return sanitize_wing_name(s)
 
 
 def is_likely_noise(encoded: str) -> bool:
-    """True for bare parent-dir entries that shouldn't be ingested."""
-    return encoded in NOISE_PATTERNS
+    """True for bare $HOME/<parent-dir> entries that shouldn't be ingested."""
+    rest = _strip_user_prefix(encoded)
+    return rest in _NOISE_TRAILING_SEGMENTS
 
 
 def scan_projects(projects_dir: Path) -> List[Dict]:

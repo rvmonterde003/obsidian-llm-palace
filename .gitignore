@@ -3,6 +3,14 @@
 .obsidian/workspace-mobile.json
 .obsidian/cache/
 
+# Repo-root Obsidian config (when user opens the whole repo as a vault — personal)
+/.obsidian/
+
+# Vault-root personal notes (anything at the vault root that isn't framework — wiki content lives in wiki/)
+obsidian-llm-palace/*.md
+!obsidian-llm-palace/Welcome.md
+!obsidian-llm-palace/CLAUDE.md
+
 # MemPalace local data (generated on init)
 entities.json
 mempalace.yaml

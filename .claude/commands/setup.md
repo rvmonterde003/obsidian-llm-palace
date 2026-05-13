@@ -256,24 +256,21 @@ The repo's own `obsidian-llm-palace/obsidian-llm-palace/CLAUDE.md` already has t
 Tell the user setup is complete. Suggest the live smoke test:
 
 1. Open a fresh terminal, `cd` into any project (e.g., this repo), run `claude`.
-2. Have a short conversation (~16 messages). After that, the Stop hook will fire and Claude in that session should call `mempalace_add_drawer` to save.
-3. End the session. Then verify the save:
-
-   ```bash
-   python -m mempalace status
-   # Look for new drawers in the relevant wing
-   ```
-
-4. Open *another* fresh session in the same project. As the first message, ask "what did we discuss last session?" — Claude should reference the prior conversation **without you reminding it** (SessionStart hook injected wake-up content into Claude's context).
-
-5. From any session, try `/recall <some query>` to test the recall slash command.
+2. In that session, type `/recall` (no args) — on a fresh install this reports an empty palace, confirming wake-up wiring works end-to-end before any real history exists.
+3. Have a short conversation. End the session, then type `/save` so Claude distills it into a MemPalace diary entry + drawers and refreshes `wiki/hot.md`.
+4. Open *another* fresh session in the same project. Type `/recall` again (or just ask "where did we leave off?") — Claude should report what was decided in step 3 without you reminding it (SessionStart hook injected wake-up content into Claude's context).
+5. From any session, try `/recall <some query>` to test semantic search mode.
 
 ---
 
 ## What's available after setup
 
-- **Save side**: every Claude session auto-saves at message-15 / session-end / pre-compact via the Stop and PreCompact hooks.
-- **Retrieve side**: SessionStart hook injects wake-up at session start; `/recall <query>` searches across all wings on demand; Claude can call `mempalace_search` and other MCP tools natively.
+- **Slash commands** (project-level — live under `.claude/commands/`):
+  - `/setup` — re-run this playbook (re-entrant; safe to run twice).
+  - `/save` — distill the current session into MemPalace + refresh `wiki/hot.md` and append to `wiki/log.md`.
+  - `/recall` — no args: resume the last session. With args: semantic search across MemPalace wings.
+- **Save side**: Stop hook (per-turn save; **deferred in this vault** — see `obsidian-llm-palace/CLAUDE.md` → *Save Behavior*), PreCompact hook (pre-compression insurance), and explicit `/save` or end-of-session pause-phrases ("let's wrap this up", "I'll resume later", "save what we have") all flush to MemPalace.
+- **Retrieve side**: SessionStart hook injects wake-up at session start; `/recall` slash command exposes both resume and semantic-search modes; Claude can call `mempalace_search` and other MCP tools natively from any prompt.
 - **Cleanup**: `python -m scripts.archive_wing <name>` (rename to `_archive_<name>`, skipped by wake-up); `python -m scripts.delete_wing <name> --yes` (irreversible drawer + tunnel deletion).
 - **Wiki layer**: drop markdown into `obsidian-llm-palace/wiki/concepts/`, `entities/`, etc. (gitignored, your content), then `python -m mempalace mine "obsidian-llm-palace/obsidian-llm-palace/wiki" --wing obsidian-llm-palace` to add it to MemPalace search.
 
